@@ -3,6 +3,6 @@
 ## ビルド方法
 
 ```bash
-elm make src/Main.elm
+elm make src/Main.elm --output elm.js
 ```
-で、index.htmlが生成されます
+で、elm.jsが出力されます。
