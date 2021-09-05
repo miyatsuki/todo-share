@@ -4,12 +4,15 @@ import Browser
 import Dict exposing (Dict)
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
+import Http
+import Json.Decode as Decode
 
 
 main =
-    Browser.sandbox
+    Browser.element
         { init = init
         , update = update
+        , subscriptions = subscriptions
         , view = view
         }
 
@@ -18,17 +21,20 @@ type alias Model =
     Dict Int Quest
 
 
-init : Model
-init =
-    Dict.fromList
+init : () -> ( Model, Cmd Msg )
+init _ =
+    ( Dict.fromList
         [ ( 0, Quest 0 "quest1" 0 2 [ "tag1", "tag2" ] )
         , ( 1, Quest 1 "quest2" 0 2 [ "tag1" ] )
         ]
+    , Cmd.none
+    )
 
 
 type Msg
     = Increment Int
     | Decrement
+    | RecieveUpdated (Result Http.Error String)
 
 
 type alias Quest =
@@ -40,14 +46,23 @@ type alias Quest =
     }
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Increment id ->
-            Dict.update id proceedQuest model
+            -- Dict.update id proceedQuest model
+            ( model, updateServerProceeding (Dict.get id model) )
 
         Decrement ->
-            model
+            ( model, Cmd.none )
+
+        RecieveUpdated result ->
+            case result of
+                Ok url ->
+                    ( model, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
 
 
 proceedQuest : Maybe Quest -> Maybe Quest
@@ -58,6 +73,19 @@ proceedQuest maybe_quest =
 
         Nothing ->
             Nothing
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
+
+
+
+-- VIEW
 
 
 view : Dict Int Quest -> Html Msg
@@ -79,8 +107,25 @@ view model =
 quest2mainHTML : ( Int, Quest ) -> Html Msg
 quest2mainHTML ( id, quest ) =
     div []
-        [ button [ onClick (Increment id) ] [ text "+" ]
+        [ button
+            [ onClick (Increment id)
+            ]
+            [ text "+" ]
         , text ("#" ++ String.fromInt id)
         , text quest.name
         , text (String.fromInt quest.proceeding ++ "/" ++ String.fromInt quest.total)
         ]
+
+
+
+--- HTTP
+
+
+updateServerProceeding : Maybe Quest -> Cmd Msg
+updateServerProceeding quest =
+    Http.get { url = "http://127.0.0.1:8000/", expect = Http.expectJson RecieveUpdated jsonDecoder }
+
+
+jsonDecoder : Decode.Decoder String
+jsonDecoder =
+    Decode.field "status" Decode.string
