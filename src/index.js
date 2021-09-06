@@ -1,11 +1,55 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore";
+import { collection, getDocs, setDoc, doc } from "firebase/firestore";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCPoJ0DnaAosqUdSWMqLbsGqZnEaiXTXD0",
+  authDomain: "todo-share-d22b4.firebaseapp.com",
+  projectId: "todo-share-d22b4",
+  storageBucket: "todo-share-d22b4.appspot.com",
+  messagingSenderId: "191584350833",
+  appId: "1:191584350833:web:eeb5f9f97f714ed1b761d0",
+  measurementId: "G-SYC1XPYCY1",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getFirestore();
+
 const axios = require("axios").default;
 
+async function asyncCall() {
+  const querySnapshot = await getDocs(collection(db, "quests"));
+  const result = [];
+  querySnapshot.forEach((doc) => result.push([doc.id, doc.data()]));
+  return result;
+}
+
+async function proceedFirebase(quest) {
+  await setDoc(doc(db, "quests", quest.firebase_id), {
+    user_id: 0,
+    quest_id: quest.quest_id,
+    name: quest.name,
+    proceed: quest.proceed,
+    total: quest.total,
+    tags: quest.tags,
+  });
+}
+
 class Quest {
-  constructor(id, name, proceed, total, tags) {
-    this.id = id;
+  constructor(firebase_id, quest_id, name, proceed, total, tags) {
+    this.firebase_id = firebase_id;
+    this.quest_id = quest_id;
     this.name = name;
     this.proceed = proceed;
     this.total = total;
@@ -23,35 +67,36 @@ class Base extends React.Component {
   }
 
   componentDidMount() {
-    axios
-      .get("http://localhost:8000/api/quest/" + this.state.user_id)
-      .then((response) => {
-        const quests = Object.fromEntries(
-          response["data"].map((quest) => [
-            quest["id"],
-            new Quest(
-              quest["id"],
-              quest["name"],
-              quest["proceed"],
-              quest["total"],
-              quest["tags"]
-            ),
-          ])
-        );
-        this.setState({ quests: quests });
-      });
+    asyncCall().then((response) => {
+      console.log(response);
+      const quests = Object.fromEntries(
+        response.map((quest) => [
+          quest[1]["quest_id"],
+          new Quest(
+            quest[0],
+            quest[1]["quest_id"],
+            quest[1]["name"],
+            quest[1]["proceed"],
+            quest[1]["total"],
+            quest[1]["tags"]
+          ),
+        ])
+      );
+      this.setState({ quests: quests });
+    });
   }
 
   proceedQuest(quest) {
     const quests = { ...this.state.quests };
-    quests[quest.id].proceed += 1;
+    quests[quest.quest_id].proceed += 1;
+    proceedFirebase(quests[quest.quest_id]);
     this.setState({ quests: quests });
   }
 
   render() {
     const quests_html = Object.values(this.state.quests).map((quest) => (
       <QuestRow
-        key={quest.id}
+        key={quest.quest_id}
         quest={quest}
         onClick={(quest) => this.proceedQuest(quest)}
       ></QuestRow>
@@ -73,7 +118,7 @@ function QuestRow(props) {
   return (
     <div>
       <button onClick={() => props.onClick(quest)}>＋</button>
-      <div>#{quest.id}</div>
+      <div>#{quest.quest_id}</div>
       <div>{quest.name}</div>
       <div>
         {quest.proceed}/{quest.total}
