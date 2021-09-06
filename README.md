@@ -3,13 +3,15 @@
 ## 使用方法
 
 ```bash
-elm make src/Main.elm --output elm.js
+npm start
 ```
-で、elm.jsが出力されます。
+
+で、フロント用のサーバが立ち上がります
 
 ```bash
 uvicorn main:app --reload
 ```
-でローカルサーバが立ち上がります
 
-http://127.0.0.1:8000/ にアクセスするとelm.jsonを読み込んだindex.htmlが表示されます
+で、バックエンド用のサーバが立ち上がります
+
+http://127.0.0.1:3000/ にアクセスすると src/index.js を読み込んだページが立ち上がります
