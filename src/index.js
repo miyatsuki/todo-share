@@ -105,6 +105,7 @@ class Base extends React.Component {
         <button>Share</button>
         <div>user_id: {this.state.user_id}</div>
         {quests_html}
+        <button>クエスト追加</button>
       </div>
     );
   }
