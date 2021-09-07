@@ -25,10 +25,10 @@ const firebaseConfig = {
 initializeApp(firebaseConfig);
 const db = getFirestore();
 
-const axios = require("axios").default;
-
-async function asyncCall() {
-  const querySnapshot = await getDocs(collection(db, "quests"));
+async function asyncCall(user_id) {
+  const querySnapshot = await getDocs(
+    collection(db, "users/" + user_id + "/quests")
+  );
   const result = [];
   querySnapshot.forEach((doc) => result.push([doc.id, doc.data()]));
   return result;
@@ -46,8 +46,7 @@ async function proceedFirebase(quest) {
 }
 
 class Quest {
-  constructor(firebase_id, quest_id, name, proceed, total, tags) {
-    this.firebase_id = firebase_id;
+  constructor(quest_id, name, proceed, total, tags) {
     this.quest_id = quest_id;
     this.name = name;
     this.proceed = proceed;
@@ -66,14 +65,13 @@ class Base extends React.Component {
   }
 
   componentDidMount() {
-    asyncCall().then((response) => {
+    asyncCall(this.state.user_id).then((response) => {
       console.log(response);
       const quests = Object.fromEntries(
         response.map((quest) => [
-          quest[1]["quest_id"],
+          quest[0],
           new Quest(
             quest[0],
-            quest[1]["quest_id"],
             quest[1]["name"],
             quest[1]["proceed"],
             quest[1]["total"],
