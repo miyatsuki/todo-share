@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import ReactModal from "react-modal";
 import "./index.css";
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
@@ -55,13 +56,26 @@ class Quest {
   }
 }
 
+ReactModal.setAppElement("#root");
 class Base extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       user_id: 0,
       quests: {},
+      showModal: false,
     };
+
+    this.handleOpenModal = this.handleOpenModal.bind(this);
+    this.handleCloseModal = this.handleCloseModal.bind(this);
+  }
+
+  handleOpenModal() {
+    this.setState({ showModal: true });
+  }
+
+  handleCloseModal() {
+    this.setState({ showModal: false });
   }
 
   componentDidMount() {
@@ -105,7 +119,15 @@ class Base extends React.Component {
         <button>Share</button>
         <div>user_id: {this.state.user_id}</div>
         {quests_html}
-        <button>クエスト追加</button>
+        <button onClick={this.handleOpenModal}>クエスト追加</button>
+        <ReactModal
+          isOpen={this.state.showModal}
+          contentLabel="クエスト追加"
+          onRequestClose={this.handleCloseModal}
+        >
+          modal
+          <button onClick={this.handleCloseModal}>追加</button>
+        </ReactModal>
       </div>
     );
   }
