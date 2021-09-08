@@ -65,9 +65,6 @@ class Base extends React.Component {
       user_id: 0,
       quests: {},
       showQuestModal: false,
-      questModal_questName: "",
-      questModal_total: 0,
-      questModal_tags: [],
     };
 
     this.handleOpenModal = this.handleOpenModal.bind(this);
@@ -115,15 +112,16 @@ class Base extends React.Component {
     this.setState({ quests: quests });
   }
 
-  addQuest() {
+  addQuest(quest_info) {
+    console.log(quest_info);
     const quest_ids = Object.keys(this.state.quests).map((x) => Number(x));
     const max_quest_id = Math.max(...quest_ids);
     const newQuest = new Quest(
       max_quest_id + 1,
-      this.state.questModal_questName,
+      quest_info.questName,
       0,
-      200,
-      ["tag1", "tag2"]
+      quest_info.total,
+      [quest_info.tags]
     );
     updateFirebase(this.state.user_id, newQuest);
 
@@ -168,10 +166,7 @@ class Base extends React.Component {
               tags: Yup.string().required("required"),
             })}
             onSubmit={(values, { setSubmitting }) => {
-              setTimeout(() => {
-                alert(JSON.stringify(values, null, 2));
-                setSubmitting(false);
-              }, 400);
+              this.addQuest(values);
             }}
           >
             <Form>
