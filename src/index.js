@@ -35,10 +35,9 @@ async function asyncCall(user_id) {
   return result;
 }
 
-async function proceedFirebase(quest) {
-  await setDoc(doc(db, "quests", quest.firebase_id), {
-    user_id: 0,
-    quest_id: quest.quest_id,
+async function updateFirebase(user_id, quest) {
+  console.log(quest);
+  await setDoc(doc(db, "users/" + user_id + "/quests/" + quest.quest_id), {
     name: quest.name,
     proceed: quest.proceed,
     total: quest.total,
@@ -87,8 +86,8 @@ class Base extends React.Component {
           new Quest(
             quest[0],
             quest[1]["name"],
-            quest[1]["proceed"],
-            quest[1]["total"],
+            Number(quest[1]["proceed"]),
+            Number(quest[1]["total"]),
             quest[1]["tags"]
           ),
         ])
@@ -100,7 +99,7 @@ class Base extends React.Component {
   proceedQuest(quest) {
     const quests = { ...this.state.quests };
     quests[quest.quest_id].proceed += 1;
-    proceedFirebase(quests[quest.quest_id]);
+    updateFirebase(this.state.user_id, quests[quest.quest_id]);
     this.setState({ quests: quests });
   }
 
