@@ -8,6 +8,8 @@ import { getFirestore } from "firebase/firestore";
 import { collection, getDocs, setDoc, doc } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
+import { Formik, Field, Form, ErrorMessage } from "formik";
+import * as Yup from "yup";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -62,20 +64,25 @@ class Base extends React.Component {
     this.state = {
       user_id: 0,
       quests: {},
-      showModal: false,
+      showQuestModal: false,
+      questModal_questName: "",
+      questModal_total: 0,
+      questModal_tags: [],
     };
 
     this.handleOpenModal = this.handleOpenModal.bind(this);
     this.handleCloseModal = this.handleCloseModal.bind(this);
+    this.handleModalQuestNameChange =
+      this.handleModalQuestNameChange.bind(this);
     this.addQuest = this.addQuest.bind(this);
   }
 
   handleOpenModal() {
-    this.setState({ showModal: true });
+    this.setState({ showQuestModal: true });
   }
 
   handleCloseModal() {
-    this.setState({ showModal: false });
+    this.setState({ showQuestModal: false });
   }
 
   componentDidMount() {
@@ -97,6 +104,10 @@ class Base extends React.Component {
     });
   }
 
+  handleModalQuestNameChange(event) {
+    this.setState({ questModal_questName: event.target.value });
+  }
+
   proceedQuest(quest) {
     const quests = { ...this.state.quests };
     quests[quest.quest_id].proceed += 1;
@@ -106,20 +117,21 @@ class Base extends React.Component {
 
   addQuest() {
     const quest_ids = Object.keys(this.state.quests).map((x) => Number(x));
-    console.log(quest_ids);
     const max_quest_id = Math.max(...quest_ids);
-    console.log(max_quest_id);
-    const newQuest = new Quest(max_quest_id + 1, "hoge", 0, 200, [
-      "tag1",
-      "tag2",
-    ]);
+    const newQuest = new Quest(
+      max_quest_id + 1,
+      this.state.questModal_questName,
+      0,
+      200,
+      ["tag1", "tag2"]
+    );
     updateFirebase(this.state.user_id, newQuest);
 
     const quests = { ...this.state.quests };
     quests[newQuest.quest_id] = newQuest;
     this.setState({
       quests: quests,
-      showModal: false,
+      showQuestModal: false,
     });
   }
 
@@ -140,28 +152,44 @@ class Base extends React.Component {
         {quests_html}
         <button onClick={this.handleOpenModal}>クエスト追加</button>
         <ReactModal
-          isOpen={this.state.showModal}
+          isOpen={this.state.showQuestModal}
           contentLabel="クエスト追加"
           onRequestClose={this.handleCloseModal}
         >
-          <div>
-            <div>
-              <label>
-                クエスト名: <input type="text" name="quest_name" />
-              </label>
-            </div>
-            <div>
-              <label>
-                作業量: <input type="text" name="total" />
-              </label>
-            </div>
-            <div>
-              <label>
-                タグ: <input type="text" name="quest_name" />
-              </label>
-            </div>
-            <button onClick={this.addQuest}>追加</button>
-          </div>
+          <Formik
+            initialValues={{
+              questName: "",
+              total: 0,
+              tags: "",
+            }}
+            validationSchema={Yup.object({
+              questName: Yup.string().required("Required"),
+              total: Yup.number().min(1, "at least 1").required("Required"),
+              tags: Yup.string().required("required"),
+            })}
+            onSubmit={(values, { setSubmitting }) => {
+              setTimeout(() => {
+                alert(JSON.stringify(values, null, 2));
+                setSubmitting(false);
+              }, 400);
+            }}
+          >
+            <Form>
+              <label>クエスト名</label>
+              <Field name="questName" />
+              <ErrorMessage name="questName" />
+
+              <label>作業量</label>
+              <Field name="total" />
+              <ErrorMessage name="total" />
+
+              <label>タグ</label>
+              <Field name="tags" />
+              <ErrorMessage name="tags" />
+
+              <button type="submit">Submit</button>
+            </Form>
+          </Formik>
         </ReactModal>
       </div>
     );
