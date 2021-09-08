@@ -1,13 +1,15 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import ReactModal from "react-modal";
 import "./index.css";
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { collection, getDocs, setDoc, doc } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
+import { Formik, Field, Form, ErrorMessage } from "formik";
+import * as Yup from "yup";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -22,23 +24,22 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+//const app = initializeApp(firebaseConfig);
+initializeApp(firebaseConfig);
 const db = getFirestore();
 
-const axios = require("axios").default;
-
-async function asyncCall() {
-  const querySnapshot = await getDocs(collection(db, "quests"));
+async function asyncCall(user_id) {
+  const querySnapshot = await getDocs(
+    collection(db, "users/" + user_id + "/quests")
+  );
   const result = [];
   querySnapshot.forEach((doc) => result.push([doc.id, doc.data()]));
   return result;
 }
 
-async function proceedFirebase(quest) {
-  await setDoc(doc(db, "quests", quest.firebase_id), {
-    user_id: 0,
-    quest_id: quest.quest_id,
+async function updateFirebase(user_id, quest) {
+  console.log(quest);
+  await setDoc(doc(db, "users/" + user_id + "/quests/" + quest.quest_id), {
     name: quest.name,
     proceed: quest.proceed,
     total: quest.total,
@@ -47,8 +48,7 @@ async function proceedFirebase(quest) {
 }
 
 class Quest {
-  constructor(firebase_id, quest_id, name, proceed, total, tags) {
-    this.firebase_id = firebase_id;
+  constructor(quest_id, name, proceed, total, tags) {
     this.quest_id = quest_id;
     this.name = name;
     this.proceed = proceed;
@@ -57,27 +57,40 @@ class Quest {
   }
 }
 
+ReactModal.setAppElement("#root");
 class Base extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       user_id: 0,
       quests: {},
+      showQuestModal: false,
     };
+
+    this.handleOpenModal = this.handleOpenModal.bind(this);
+    this.handleCloseModal = this.handleCloseModal.bind(this);
+    this.addQuest = this.addQuest.bind(this);
+  }
+
+  handleOpenModal() {
+    this.setState({ showQuestModal: true });
+  }
+
+  handleCloseModal() {
+    this.setState({ showQuestModal: false });
   }
 
   componentDidMount() {
-    asyncCall().then((response) => {
+    asyncCall(this.state.user_id).then((response) => {
       console.log(response);
       const quests = Object.fromEntries(
         response.map((quest) => [
-          quest[1]["quest_id"],
+          Number(quest[0]),
           new Quest(
-            quest[0],
-            quest[1]["quest_id"],
+            Number(quest[0]),
             quest[1]["name"],
-            quest[1]["proceed"],
-            quest[1]["total"],
+            Number(quest[1]["proceed"]),
+            Number(quest[1]["total"]),
             quest[1]["tags"]
           ),
         ])
@@ -89,8 +102,29 @@ class Base extends React.Component {
   proceedQuest(quest) {
     const quests = { ...this.state.quests };
     quests[quest.quest_id].proceed += 1;
-    proceedFirebase(quests[quest.quest_id]);
+    updateFirebase(this.state.user_id, quests[quest.quest_id]);
     this.setState({ quests: quests });
+  }
+
+  addQuest(quest_info) {
+    console.log(quest_info);
+    const quest_ids = Object.keys(this.state.quests).map((x) => Number(x));
+    const max_quest_id = Math.max(...quest_ids);
+    const newQuest = new Quest(
+      max_quest_id + 1,
+      quest_info.questName,
+      0,
+      quest_info.total,
+      [quest_info.tags]
+    );
+    updateFirebase(this.state.user_id, newQuest);
+
+    const quests = { ...this.state.quests };
+    quests[newQuest.quest_id] = newQuest;
+    this.setState({
+      quests: quests,
+      showQuestModal: false,
+    });
   }
 
   render() {
@@ -108,6 +142,44 @@ class Base extends React.Component {
         <button>Share</button>
         <div>user_id: {this.state.user_id}</div>
         {quests_html}
+        <button onClick={this.handleOpenModal}>クエスト追加</button>
+        <ReactModal
+          isOpen={this.state.showQuestModal}
+          contentLabel="クエスト追加"
+          onRequestClose={this.handleCloseModal}
+        >
+          <Formik
+            initialValues={{
+              questName: "",
+              total: 0,
+              tags: "",
+            }}
+            validationSchema={Yup.object({
+              questName: Yup.string().required("Required"),
+              total: Yup.number().min(1, "at least 1").required("Required"),
+              tags: Yup.string().required("required"),
+            })}
+            onSubmit={(values, { setSubmitting }) => {
+              this.addQuest(values);
+            }}
+          >
+            <Form>
+              <label>クエスト名</label>
+              <Field name="questName" />
+              <ErrorMessage name="questName" />
+
+              <label>作業量</label>
+              <Field name="total" />
+              <ErrorMessage name="total" />
+
+              <label>タグ</label>
+              <Field name="tags" />
+              <ErrorMessage name="tags" />
+
+              <button type="submit">Submit</button>
+            </Form>
+          </Formik>
+        </ReactModal>
       </div>
     );
   }
