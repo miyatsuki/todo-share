@@ -69,8 +69,6 @@ class Base extends React.Component {
 
     this.handleOpenModal = this.handleOpenModal.bind(this);
     this.handleCloseModal = this.handleCloseModal.bind(this);
-    this.handleModalQuestNameChange =
-      this.handleModalQuestNameChange.bind(this);
     this.addQuest = this.addQuest.bind(this);
   }
 
@@ -99,10 +97,6 @@ class Base extends React.Component {
       );
       this.setState({ quests: quests });
     });
-  }
-
-  handleModalQuestNameChange(event) {
-    this.setState({ questModal_questName: event.target.value });
   }
 
   proceedQuest(quest) {
