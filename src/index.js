@@ -67,6 +67,7 @@ class Base extends React.Component {
 
     this.handleOpenModal = this.handleOpenModal.bind(this);
     this.handleCloseModal = this.handleCloseModal.bind(this);
+    this.addQuest = this.addQuest.bind(this);
   }
 
   handleOpenModal() {
@@ -82,9 +83,9 @@ class Base extends React.Component {
       console.log(response);
       const quests = Object.fromEntries(
         response.map((quest) => [
-          quest[0],
+          Number(quest[0]),
           new Quest(
-            quest[0],
+            Number(quest[0]),
             quest[1]["name"],
             Number(quest[1]["proceed"]),
             Number(quest[1]["total"]),
@@ -101,6 +102,25 @@ class Base extends React.Component {
     quests[quest.quest_id].proceed += 1;
     updateFirebase(this.state.user_id, quests[quest.quest_id]);
     this.setState({ quests: quests });
+  }
+
+  addQuest() {
+    const quest_ids = Object.keys(this.state.quests).map((x) => Number(x));
+    console.log(quest_ids);
+    const max_quest_id = Math.max(...quest_ids);
+    console.log(max_quest_id);
+    const newQuest = new Quest(max_quest_id + 1, "hoge", 0, 200, [
+      "tag1",
+      "tag2",
+    ]);
+    updateFirebase(this.state.user_id, newQuest);
+
+    const quests = { ...this.state.quests };
+    quests[newQuest.quest_id] = newQuest;
+    this.setState({
+      quests: quests,
+      showModal: false,
+    });
   }
 
   render() {
@@ -124,8 +144,24 @@ class Base extends React.Component {
           contentLabel="クエスト追加"
           onRequestClose={this.handleCloseModal}
         >
-          modal
-          <button onClick={this.handleCloseModal}>追加</button>
+          <div>
+            <div>
+              <label>
+                クエスト名: <input type="text" name="quest_name" />
+              </label>
+            </div>
+            <div>
+              <label>
+                作業量: <input type="text" name="total" />
+              </label>
+            </div>
+            <div>
+              <label>
+                タグ: <input type="text" name="quest_name" />
+              </label>
+            </div>
+            <button onClick={this.addQuest}>追加</button>
+          </div>
         </ReactModal>
       </div>
     );
