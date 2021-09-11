@@ -5,7 +5,7 @@ import "./index.css";
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { collection, getDocs, setDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, setDoc, doc, serverTimestamp } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { Formik, Field, Form, ErrorMessage } from "formik";
@@ -44,6 +44,12 @@ async function updateQuest(user_id, quest) {
     proceed: quest.proceed,
     total: quest.total,
     tags: quest.tags,
+  });
+
+  await addDoc(collection(db, "users/" + user_id + "/quests/" + quest.quest_id + "/proceeds"), {
+    before_proceed: 0,
+    after_proceed: quest.proceed,
+    timestamp: serverTimestamp()
   });
 }
 
