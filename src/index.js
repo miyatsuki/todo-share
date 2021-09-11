@@ -110,9 +110,16 @@ class Base extends React.Component {
   }
 
   proceedQuest(quest) {
+    const prev_quest = new Quest(
+      quest.quest_id,
+      quest.questName,
+      quest.proceed,
+      quest.total,
+      quest.tags
+    )
     const quests = { ...this.state.quests };
     quests[quest.quest_id].proceed += 1;
-    updateQuest(this.state.user_id, quests[quest.quest_id]);
+    updateQuest(this.state.user_id, quests[quest.quest_id], prev_quest);
     this.setState({ quests: quests });
   }
 
