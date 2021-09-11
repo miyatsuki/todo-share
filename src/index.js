@@ -113,10 +113,11 @@ class Base extends React.Component {
     const newQuest = new Quest(
       max_quest_id + 1,
       quest_info.questName,
-      0,
-      quest_info.total,
+      Number(quest_info.proceed),
+      Number(quest_info.total),
       [quest_info.tags]
     );
+    console.log(newQuest)
     updateFirebase(this.state.user_id, newQuest);
 
     const quests = { ...this.state.quests };
@@ -152,11 +153,13 @@ class Base extends React.Component {
           <Formik
             initialValues={{
               questName: "",
+              proceed: 0,
               total: 0,
               tags: "",
             }}
             validationSchema={Yup.object({
               questName: Yup.string().required("Required"),
+              proceed: Yup.number().min(0, "can't be negative").required("Required"),
               total: Yup.number().min(1, "at least 1").required("Required"),
               tags: Yup.string().required("required"),
             })}
@@ -165,19 +168,33 @@ class Base extends React.Component {
             }}
           >
             <Form>
-              <label>クエスト名</label>
-              <Field name="questName" />
-              <ErrorMessage name="questName" />
+              <div>
+                <label>クエスト名</label>
+                <Field name="questName" />
+                <ErrorMessage name="questName" />
+              </div>
 
-              <label>作業量</label>
-              <Field name="total" />
-              <ErrorMessage name="total" />
+              <div>
+                <label>作業量</label>
+                <Field name="proceed" />
+                <ErrorMessage name="proceed" />
+              </div>
 
-              <label>タグ</label>
-              <Field name="tags" />
-              <ErrorMessage name="tags" />
+              <div>
+                <label>トータル</label>
+                <Field name="total" />
+                <ErrorMessage name="total" />
+              </div>
 
-              <button type="submit">Submit</button>
+              <div>
+                <label>タグ</label>
+                <Field name="tags" />
+                <ErrorMessage name="tags" />
+              </div>
+
+              <div>
+                <button type="submit">Submit</button>
+              </div>
             </Form>
           </Formik>
         </ReactModal>
