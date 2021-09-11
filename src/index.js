@@ -37,7 +37,7 @@ async function asyncCall(user_id) {
   return result;
 }
 
-async function updateFirebase(user_id, quest) {
+async function updateQuest(user_id, quest) {
   console.log(quest);
   await setDoc(doc(db, "users/" + user_id + "/quests/" + quest.quest_id), {
     name: quest.questName,
@@ -106,7 +106,7 @@ class Base extends React.Component {
   proceedQuest(quest) {
     const quests = { ...this.state.quests };
     quests[quest.quest_id].proceed += 1;
-    updateFirebase(this.state.user_id, quests[quest.quest_id]);
+    updateQuest(this.state.user_id, quests[quest.quest_id]);
     this.setState({ quests: quests });
   }
 
@@ -160,7 +160,7 @@ class Base extends React.Component {
                 [values.tags]
               );
               console.log(newQuest)
-              updateFirebase(this.state.user_id, newQuest);
+              updateQuest(this.state.user_id, newQuest);
           
               const quests = { ...this.state.quests };
               quests[newQuest.quest_id] = newQuest;
