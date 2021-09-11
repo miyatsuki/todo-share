@@ -4,8 +4,7 @@ import ReactModal from "react-modal";
 import "./index.css";
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { collection, addDoc, getDocs, setDoc, doc, serverTimestamp, query, where } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, setDoc, doc, serverTimestamp, query, where } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { Formik, Field, Form, ErrorMessage } from "formik";
@@ -56,7 +55,11 @@ async function updateQuest(user_id, quest, prevQuest) {
 }
 
 async function calcExp(user_id, fromTime, toTime) {
-  const q = query(collection(db, "users/" + user_id + "/proceed_log"), where("quest_id", "==", 0));
+  const q = query(
+    collection(db, "users/" + user_id + "/proceed_log"), 
+    where("timestamp", ">=", new Date("2021-09-11 19:09:00")), 
+    where("timestamp", "<=", new Date("2021-09-11 19:09:01")), 
+  );
 
   const result = [];
   const querySnapshot = await getDocs(q);
