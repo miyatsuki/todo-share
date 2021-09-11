@@ -195,6 +195,7 @@ function QuestRow(props) {
       <div>
         {quest.proceed}/{quest.total}
       </div>
+      <button>編集</button>
     </div>
   );
 }
