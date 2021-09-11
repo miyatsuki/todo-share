@@ -70,7 +70,6 @@ class Base extends React.Component {
 
     this.handleOpenModal = this.handleOpenModal.bind(this);
     this.handleCloseModal = this.handleCloseModal.bind(this);
-    this.addQuest = this.addQuest.bind(this);
   }
 
   handleOpenModal(quest) {
@@ -111,28 +110,6 @@ class Base extends React.Component {
     this.setState({ quests: quests });
   }
 
-  addQuest(quest_info) {
-    console.log(quest_info);
-    const quest_ids = Object.keys(this.state.quests).map((x) => Number(x));
-    const max_quest_id = Math.max(...quest_ids);
-    const newQuest = new Quest(
-      max_quest_id + 1,
-      quest_info.questName,
-      Number(quest_info.proceed),
-      Number(quest_info.total),
-      [quest_info.tags]
-    );
-    console.log(newQuest)
-    updateFirebase(this.state.user_id, newQuest);
-
-    const quests = { ...this.state.quests };
-    quests[newQuest.quest_id] = newQuest;
-    this.setState({
-      quests: quests,
-      showQuestModal: false,
-    });
-  }
-
   render() {
     const quests_html = Object.values(this.state.quests).map((quest) => (
       <QuestRow
@@ -169,7 +146,28 @@ class Base extends React.Component {
               tags: Yup.string().required("required"),
             })}
             onSubmit={(values, { setSubmitting }) => {
-              this.addQuest(values);
+              console.log(values);
+
+              const quest_ids = Object.keys(this.state.quests).map((x) => Number(x));
+              const max_quest_id = Math.max(...quest_ids);
+              const new_quest_id = this.state.editingQuest ? this.state.editingQuest.quest_id : max_quest_id + 1
+
+              const newQuest = new Quest(
+                new_quest_id,
+                values.questName,
+                Number(values.proceed),
+                Number(values.total),
+                [values.tags]
+              );
+              console.log(newQuest)
+              updateFirebase(this.state.user_id, newQuest);
+          
+              const quests = { ...this.state.quests };
+              quests[newQuest.quest_id] = newQuest;
+              this.setState({
+                quests: quests,
+                showQuestModal: false,
+              });
             }}
           >
             <Form>
