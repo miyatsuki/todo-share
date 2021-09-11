@@ -46,9 +46,11 @@ async function updateQuest(user_id, quest, prevQuest) {
     tags: quest.tags,
   });
 
-  await addDoc(collection(db, "users/" + user_id + "/quests/" + quest.quest_id + "/proceeds"), {
+  await addDoc(collection(db, "users/" + user_id + "/proceed_log"), {
+    quest_id: quest.quest_id,
     before_proceed: prevQuest ? prevQuest.proceed : 0,
     after_proceed: quest.proceed,
+    tags: quest.tags,
     timestamp: serverTimestamp()
   });
 }
@@ -191,7 +193,7 @@ class Base extends React.Component {
               </div>
 
               <div>
-                <label>作業量</label>
+                <label>進捗</label>
                 <Field name="proceed" />
                 <ErrorMessage name="proceed" />
               </div>
