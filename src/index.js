@@ -195,6 +195,7 @@ function QuestRow(props) {
       <div>
         {quest.proceed}/{quest.total}
       </div>
+      <div>{quest.tags[0]}</div>
       <button>編集</button>
     </div>
   );
