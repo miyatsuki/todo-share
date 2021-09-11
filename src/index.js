@@ -37,7 +37,7 @@ async function loadQuests(user_id) {
   return result;
 }
 
-async function updateQuest(user_id, quest) {
+async function updateQuest(user_id, quest, prevQuest) {
   console.log(quest);
   await setDoc(doc(db, "users/" + user_id + "/quests/" + quest.quest_id), {
     name: quest.questName,
@@ -47,7 +47,7 @@ async function updateQuest(user_id, quest) {
   });
 
   await addDoc(collection(db, "users/" + user_id + "/quests/" + quest.quest_id + "/proceeds"), {
-    before_proceed: 0,
+    before_proceed: prevQuest ? prevQuest.proceed : 0,
     after_proceed: quest.proceed,
     timestamp: serverTimestamp()
   });
@@ -166,7 +166,7 @@ class Base extends React.Component {
                 [values.tags]
               );
               console.log(newQuest)
-              updateQuest(this.state.user_id, newQuest);
+              updateQuest(this.state.user_id, newQuest, this.state.editingQuest ? this.state.editingQuest : null);
           
               const quests = { ...this.state.quests };
               quests[newQuest.quest_id] = newQuest;
