@@ -188,7 +188,7 @@ class Base extends React.Component {
 function QuestRow(props) {
   const quest = props.quest;
   return (
-    <div>
+    <div class="questRow">
       <button onClick={() => props.onClick(quest)}>＋</button>
       <div>#{quest.quest_id}</div>
       <div>{quest.name}</div>
