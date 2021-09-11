@@ -40,7 +40,7 @@ async function asyncCall(user_id) {
 async function updateFirebase(user_id, quest) {
   console.log(quest);
   await setDoc(doc(db, "users/" + user_id + "/quests/" + quest.quest_id), {
-    name: quest.name,
+    name: quest.questName,
     proceed: quest.proceed,
     total: quest.total,
     tags: quest.tags,
@@ -48,9 +48,9 @@ async function updateFirebase(user_id, quest) {
 }
 
 class Quest {
-  constructor(quest_id, name, proceed, total, tags) {
+  constructor(quest_id, questName, proceed, total, tags) {
     this.quest_id = quest_id;
-    this.name = name;
+    this.questName = questName;
     this.proceed = proceed;
     this.total = total;
     this.tags = tags;
@@ -65,15 +65,19 @@ class Base extends React.Component {
       user_id: 0,
       quests: {},
       showQuestModal: false,
+      editingQuest: null
     };
 
     this.handleOpenModal = this.handleOpenModal.bind(this);
     this.handleCloseModal = this.handleCloseModal.bind(this);
-    this.addQuest = this.addQuest.bind(this);
   }
 
-  handleOpenModal() {
-    this.setState({ showQuestModal: true });
+  handleOpenModal(quest) {
+    console.log(quest)
+    this.setState({
+      editingQuest: quest ? quest: null,
+      showQuestModal: true
+    })
   }
 
   handleCloseModal() {
@@ -106,33 +110,13 @@ class Base extends React.Component {
     this.setState({ quests: quests });
   }
 
-  addQuest(quest_info) {
-    console.log(quest_info);
-    const quest_ids = Object.keys(this.state.quests).map((x) => Number(x));
-    const max_quest_id = Math.max(...quest_ids);
-    const newQuest = new Quest(
-      max_quest_id + 1,
-      quest_info.questName,
-      0,
-      quest_info.total,
-      [quest_info.tags]
-    );
-    updateFirebase(this.state.user_id, newQuest);
-
-    const quests = { ...this.state.quests };
-    quests[newQuest.quest_id] = newQuest;
-    this.setState({
-      quests: quests,
-      showQuestModal: false,
-    });
-  }
-
   render() {
     const quests_html = Object.values(this.state.quests).map((quest) => (
       <QuestRow
         key={quest.quest_id}
         quest={quest}
-        onClick={(quest) => this.proceedQuest(quest)}
+        onClickIncrement={(quest) => this.proceedQuest(quest)}
+        onClickEditButton={(quest) => this.handleOpenModal(quest)}
       ></QuestRow>
     ));
 
@@ -142,7 +126,7 @@ class Base extends React.Component {
         <button>Share</button>
         <div>user_id: {this.state.user_id}</div>
         {quests_html}
-        <button onClick={this.handleOpenModal}>クエスト追加</button>
+        <button onClick={() => this.handleOpenModal(null)}>クエスト追加</button>
         <ReactModal
           isOpen={this.state.showQuestModal}
           contentLabel="クエスト追加"
@@ -150,33 +134,70 @@ class Base extends React.Component {
         >
           <Formik
             initialValues={{
-              questName: "",
-              total: 0,
-              tags: "",
+              questName: this.state.editingQuest ? this.state.editingQuest.questName : "",
+              proceed: this.state.editingQuest ? this.state.editingQuest.proceed : 0,
+              total: this.state.editingQuest ? this.state.editingQuest.total : 0,
+              tags: this.state.editingQuest ? this.state.editingQuest.tags : "",
             }}
             validationSchema={Yup.object({
               questName: Yup.string().required("Required"),
+              proceed: Yup.number().min(0, "can't be negative").required("Required"),
               total: Yup.number().min(1, "at least 1").required("Required"),
               tags: Yup.string().required("required"),
             })}
             onSubmit={(values, { setSubmitting }) => {
-              this.addQuest(values);
+              console.log(values);
+
+              const quest_ids = Object.keys(this.state.quests).map((x) => Number(x));
+              const max_quest_id = Math.max(...quest_ids);
+              const new_quest_id = this.state.editingQuest ? this.state.editingQuest.quest_id : max_quest_id + 1
+
+              const newQuest = new Quest(
+                new_quest_id,
+                values.questName,
+                Number(values.proceed),
+                Number(values.total),
+                [values.tags]
+              );
+              console.log(newQuest)
+              updateFirebase(this.state.user_id, newQuest);
+          
+              const quests = { ...this.state.quests };
+              quests[newQuest.quest_id] = newQuest;
+              this.setState({
+                quests: quests,
+                showQuestModal: false,
+              });
             }}
           >
             <Form>
-              <label>クエスト名</label>
-              <Field name="questName" />
-              <ErrorMessage name="questName" />
+              <div>
+                <label>クエスト名</label>
+                <Field name="questName" />
+                <ErrorMessage name="questName" />
+              </div>
 
-              <label>作業量</label>
-              <Field name="total" />
-              <ErrorMessage name="total" />
+              <div>
+                <label>作業量</label>
+                <Field name="proceed" />
+                <ErrorMessage name="proceed" />
+              </div>
 
-              <label>タグ</label>
-              <Field name="tags" />
-              <ErrorMessage name="tags" />
+              <div>
+                <label>トータル</label>
+                <Field name="total" />
+                <ErrorMessage name="total" />
+              </div>
 
-              <button type="submit">Submit</button>
+              <div>
+                <label>タグ</label>
+                <Field name="tags" />
+                <ErrorMessage name="tags" />
+              </div>
+
+              <div>
+                <button type="submit">Submit</button>
+              </div>
             </Form>
           </Formik>
         </ReactModal>
@@ -188,13 +209,15 @@ class Base extends React.Component {
 function QuestRow(props) {
   const quest = props.quest;
   return (
-    <div>
-      <button onClick={() => props.onClick(quest)}>＋</button>
+    <div className="questRow">
+      <button onClick={() => props.onClickIncrement(quest)}>＋</button>
       <div>#{quest.quest_id}</div>
-      <div>{quest.name}</div>
+      <div>{quest.questName}</div>
       <div>
         {quest.proceed}/{quest.total}
       </div>
+      <div>{quest.tags[0]}</div>
+      <button onClick={() => props.onClickEditButton(quest)}>編集</button>
     </div>
   );
 }
