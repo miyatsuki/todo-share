@@ -28,7 +28,7 @@ const firebaseConfig = {
 initializeApp(firebaseConfig);
 const db = getFirestore();
 
-async function asyncCall(user_id) {
+async function loadQuests(user_id) {
   const querySnapshot = await getDocs(
     collection(db, "users/" + user_id + "/quests")
   );
@@ -85,7 +85,7 @@ class Base extends React.Component {
   }
 
   componentDidMount() {
-    asyncCall(this.state.user_id).then((response) => {
+    loadQuests(this.state.user_id).then((response) => {
       console.log(response);
       const quests = Object.fromEntries(
         response.map((quest) => [
