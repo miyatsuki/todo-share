@@ -40,7 +40,7 @@ async function asyncCall(user_id) {
 async function updateFirebase(user_id, quest) {
   console.log(quest);
   await setDoc(doc(db, "users/" + user_id + "/quests/" + quest.quest_id), {
-    name: quest.name,
+    name: quest.questName,
     proceed: quest.proceed,
     total: quest.total,
     tags: quest.tags,
@@ -48,9 +48,9 @@ async function updateFirebase(user_id, quest) {
 }
 
 class Quest {
-  constructor(quest_id, name, proceed, total, tags) {
+  constructor(quest_id, questName, proceed, total, tags) {
     this.quest_id = quest_id;
-    this.name = name;
+    this.questName = questName;
     this.proceed = proceed;
     this.total = total;
     this.tags = tags;
@@ -65,6 +65,7 @@ class Base extends React.Component {
       user_id: 0,
       quests: {},
       showQuestModal: false,
+      editingQuest: null
     };
 
     this.handleOpenModal = this.handleOpenModal.bind(this);
@@ -72,8 +73,12 @@ class Base extends React.Component {
     this.addQuest = this.addQuest.bind(this);
   }
 
-  handleOpenModal() {
-    this.setState({ showQuestModal: true });
+  handleOpenModal(quest) {
+    console.log(quest)
+    this.setState({
+      editingQuest: quest ? quest: null,
+      showQuestModal: true
+    })
   }
 
   handleCloseModal() {
@@ -134,7 +139,7 @@ class Base extends React.Component {
         key={quest.quest_id}
         quest={quest}
         onClickIncrement={(quest) => this.proceedQuest(quest)}
-        onClickEditButton={this.handleOpenModal}
+        onClickEditButton={(quest) => this.handleOpenModal(quest)}
       ></QuestRow>
     ));
 
@@ -144,7 +149,7 @@ class Base extends React.Component {
         <button>Share</button>
         <div>user_id: {this.state.user_id}</div>
         {quests_html}
-        <button onClick={this.handleOpenModal}>クエスト追加</button>
+        <button onClick={() => this.handleOpenModal(null)}>クエスト追加</button>
         <ReactModal
           isOpen={this.state.showQuestModal}
           contentLabel="クエスト追加"
@@ -152,10 +157,10 @@ class Base extends React.Component {
         >
           <Formik
             initialValues={{
-              questName: "",
-              proceed: 0,
-              total: 0,
-              tags: "",
+              questName: this.state.editingQuest ? this.state.editingQuest.questName : "",
+              proceed: this.state.editingQuest ? this.state.editingQuest.proceed : 0,
+              total: this.state.editingQuest ? this.state.editingQuest.total : 0,
+              tags: this.state.editingQuest ? this.state.editingQuest.tags : "",
             }}
             validationSchema={Yup.object({
               questName: Yup.string().required("Required"),
@@ -209,12 +214,12 @@ function QuestRow(props) {
     <div className="questRow">
       <button onClick={() => props.onClickIncrement(quest)}>＋</button>
       <div>#{quest.quest_id}</div>
-      <div>{quest.name}</div>
+      <div>{quest.questName}</div>
       <div>
         {quest.proceed}/{quest.total}
       </div>
       <div>{quest.tags[0]}</div>
-      <button onClick={() => props.onClickEditButton()}>編集</button>
+      <button onClick={() => props.onClickEditButton(quest)}>編集</button>
     </div>
   );
 }
