@@ -5,7 +5,7 @@ import "./index.css";
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { collection, addDoc, getDocs, setDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, setDoc, doc, serverTimestamp, query, where } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { Formik, Field, Form, ErrorMessage } from "formik";
@@ -53,6 +53,16 @@ async function updateQuest(user_id, quest, prevQuest) {
     tags: quest.tags,
     timestamp: serverTimestamp()
   });
+}
+
+async function calcExp(user_id, fromTime, toTime) {
+  const q = query(collection(db, "users/" + user_id + "/proceed_log"), where("quest_id", "==", 0));
+
+  const result = [];
+  const querySnapshot = await getDocs(q);
+  querySnapshot.forEach((doc) => result.push([doc.id, doc.data()]));
+
+  console.log(result)
 }
 
 class Quest {
@@ -138,7 +148,7 @@ class Base extends React.Component {
     return (
       <div>
         <div>クエスト一覧</div>
-        <button>Share</button>
+        <button onClick={() => calcExp(this.state.user_id, "", "")}>Share</button>
         <div>user_id: {this.state.user_id}</div>
         {quests_html}
         <button onClick={() => this.handleOpenModal(null)}>クエスト追加</button>
