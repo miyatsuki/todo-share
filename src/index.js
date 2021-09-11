@@ -5,7 +5,7 @@ import "./index.css";
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { collection, getDocs, setDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, setDoc, doc, serverTimestamp } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { Formik, Field, Form, ErrorMessage } from "formik";
@@ -28,7 +28,7 @@ const firebaseConfig = {
 initializeApp(firebaseConfig);
 const db = getFirestore();
 
-async function asyncCall(user_id) {
+async function loadQuests(user_id) {
   const querySnapshot = await getDocs(
     collection(db, "users/" + user_id + "/quests")
   );
@@ -37,13 +37,19 @@ async function asyncCall(user_id) {
   return result;
 }
 
-async function updateFirebase(user_id, quest) {
+async function updateQuest(user_id, quest, prevQuest) {
   console.log(quest);
   await setDoc(doc(db, "users/" + user_id + "/quests/" + quest.quest_id), {
     name: quest.questName,
     proceed: quest.proceed,
     total: quest.total,
     tags: quest.tags,
+  });
+
+  await addDoc(collection(db, "users/" + user_id + "/quests/" + quest.quest_id + "/proceeds"), {
+    before_proceed: prevQuest ? prevQuest.proceed : 0,
+    after_proceed: quest.proceed,
+    timestamp: serverTimestamp()
   });
 }
 
@@ -85,7 +91,7 @@ class Base extends React.Component {
   }
 
   componentDidMount() {
-    asyncCall(this.state.user_id).then((response) => {
+    loadQuests(this.state.user_id).then((response) => {
       console.log(response);
       const quests = Object.fromEntries(
         response.map((quest) => [
@@ -104,9 +110,16 @@ class Base extends React.Component {
   }
 
   proceedQuest(quest) {
+    const prev_quest = new Quest(
+      quest.quest_id,
+      quest.questName,
+      quest.proceed,
+      quest.total,
+      quest.tags
+    )
     const quests = { ...this.state.quests };
     quests[quest.quest_id].proceed += 1;
-    updateFirebase(this.state.user_id, quests[quest.quest_id]);
+    updateQuest(this.state.user_id, quests[quest.quest_id], prev_quest);
     this.setState({ quests: quests });
   }
 
@@ -160,7 +173,7 @@ class Base extends React.Component {
                 [values.tags]
               );
               console.log(newQuest)
-              updateFirebase(this.state.user_id, newQuest);
+              updateQuest(this.state.user_id, newQuest, this.state.editingQuest ? this.state.editingQuest : null);
           
               const quests = { ...this.state.quests };
               quests[newQuest.quest_id] = newQuest;
