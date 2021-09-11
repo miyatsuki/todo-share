@@ -132,7 +132,8 @@ class Base extends React.Component {
       <QuestRow
         key={quest.quest_id}
         quest={quest}
-        onClick={(quest) => this.proceedQuest(quest)}
+        onClickIncrement={(quest) => this.proceedQuest(quest)}
+        onClickEditButton={this.handleOpenModal}
       ></QuestRow>
     ));
 
@@ -188,15 +189,15 @@ class Base extends React.Component {
 function QuestRow(props) {
   const quest = props.quest;
   return (
-    <div class="questRow">
-      <button onClick={() => props.onClick(quest)}>＋</button>
+    <div className="questRow">
+      <button onClick={() => props.onClickIncrement(quest)}>＋</button>
       <div>#{quest.quest_id}</div>
       <div>{quest.name}</div>
       <div>
         {quest.proceed}/{quest.total}
       </div>
       <div>{quest.tags[0]}</div>
-      <button>編集</button>
+      <button onClick={() => props.onClickEditButton()}>編集</button>
     </div>
   );
 }
