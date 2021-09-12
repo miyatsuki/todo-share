@@ -4,8 +4,7 @@ import ReactModal from "react-modal";
 import "./index.css";
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { collection, addDoc, getDocs, setDoc, doc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, setDoc, doc, serverTimestamp, query, where } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { Formik, Field, Form, ErrorMessage } from "formik";
@@ -46,11 +45,54 @@ async function updateQuest(user_id, quest, prevQuest) {
     tags: quest.tags,
   });
 
-  await addDoc(collection(db, "users/" + user_id + "/quests/" + quest.quest_id + "/proceeds"), {
+  await addDoc(collection(db, "users/" + user_id + "/proceed_log"), {
+    quest_id: quest.quest_id,
     before_proceed: prevQuest ? prevQuest.proceed : 0,
     after_proceed: quest.proceed,
+    tags: quest.tags,
     timestamp: serverTimestamp()
   });
+}
+
+async function calcExp(user_id, range) {
+
+  const d = new Date()
+  var from_date, to_date
+  if(range === "day"){
+    from_date = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    to_date  = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59)
+  }
+  else{
+    console.log(range)
+    return []
+  }
+
+  const q = query(
+    collection(db, "users/" + user_id + "/proceed_log"), 
+    where("timestamp", ">=", from_date), 
+    where("timestamp", "<=", to_date), 
+  );
+
+  const result = [];
+  const querySnapshot = await getDocs(q);
+  querySnapshot.forEach((doc) => result.push([
+    doc.data().tags[0], 
+    doc.data().after_proceed - doc.data().before_proceed
+  ]));
+
+  let expDict = {}
+  for(let proceed of result){
+    if(!(proceed[0] in expDict)){
+      expDict[proceed[0]] = 0
+    }
+
+    expDict[proceed[0]] += proceed[1]
+  }
+
+  console.log(result)
+  console.log(expDict)
+
+  return expDict
 }
 
 class Quest {
@@ -136,7 +178,7 @@ class Base extends React.Component {
     return (
       <div>
         <div>クエスト一覧</div>
-        <button>Share</button>
+        <button onClick={() => calcExp(this.state.user_id, "day")}>Share</button>
         <div>user_id: {this.state.user_id}</div>
         {quests_html}
         <button onClick={() => this.handleOpenModal(null)}>クエスト追加</button>
@@ -191,7 +233,7 @@ class Base extends React.Component {
               </div>
 
               <div>
-                <label>作業量</label>
+                <label>進捗</label>
                 <Field name="proceed" />
                 <ErrorMessage name="proceed" />
               </div>
