@@ -54,18 +54,45 @@ async function updateQuest(user_id, quest, prevQuest) {
   });
 }
 
-async function calcExp(user_id, fromTime, toTime) {
+async function calcExp(user_id, range) {
+
+  const d = new Date()
+  var from_date, to_date
+  if(range === "day"){
+    from_date = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    to_date  = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59)
+  }
+  else{
+    console.log(range)
+    return []
+  }
+
   const q = query(
     collection(db, "users/" + user_id + "/proceed_log"), 
-    where("timestamp", ">=", new Date("2021-09-11 19:09:00")), 
-    where("timestamp", "<=", new Date("2021-09-11 19:09:01")), 
+    where("timestamp", ">=", from_date), 
+    where("timestamp", "<=", to_date), 
   );
 
   const result = [];
   const querySnapshot = await getDocs(q);
-  querySnapshot.forEach((doc) => result.push([doc.id, doc.data()]));
+  querySnapshot.forEach((doc) => result.push([
+    doc.data().tags[0], 
+    doc.data().after_proceed - doc.data().before_proceed
+  ]));
+
+  let expDict = {}
+  for(let proceed of result){
+    if(!(proceed[0] in expDict)){
+      expDict[proceed[0]] = 0
+    }
+
+    expDict[proceed[0]] += proceed[1]
+  }
 
   console.log(result)
+  console.log(expDict)
+
+  return expDict
 }
 
 class Quest {
@@ -151,7 +178,7 @@ class Base extends React.Component {
     return (
       <div>
         <div>クエスト一覧</div>
-        <button onClick={() => calcExp(this.state.user_id, "", "")}>Share</button>
+        <button onClick={() => calcExp(this.state.user_id, "day")}>Share</button>
         <div>user_id: {this.state.user_id}</div>
         {quests_html}
         <button onClick={() => this.handleOpenModal(null)}>クエスト追加</button>
