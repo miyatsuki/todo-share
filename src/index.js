@@ -31,8 +31,11 @@ async function loadQuests(user_id) {
   const querySnapshot = await getDocs(
     collection(db, "users/" + user_id + "/quests")
   );
-  const result = [];
+
+  let result = [];
   querySnapshot.forEach((doc) => result.push([doc.id, doc.data()]));
+  result = result.filter((doc) => doc[1].total > doc[1].proceed)
+
   return result;
 }
 
