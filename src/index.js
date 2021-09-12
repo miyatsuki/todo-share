@@ -98,6 +98,16 @@ async function calcExp(user_id, range) {
   return expDict
 }
 
+async function getMaxQuestId(userId) {
+  const querySnapshot = await getDocs(
+    collection(db, "users/" + userId + "/quests")
+  );
+
+  let result = [];
+  querySnapshot.forEach((doc) => result.push([doc.id]));
+  return Math.max(...result);
+}
+
 class Quest {
   constructor(quest_id, questName, proceed, total, tags) {
     this.quest_id = quest_id;
@@ -182,6 +192,57 @@ class Base extends React.Component {
     this.checkQuestComplete()
   }
 
+  async addQuest(values){
+    const max_quest_id = await getMaxQuestId(this.state.user_id)
+    const new_quest_id = max_quest_id + 1
+
+    const newQuest = new Quest(
+      new_quest_id,
+      values.questName,
+      Number(values.proceed),
+      Number(values.total),
+      [values.tags]
+    );
+    console.log(newQuest)
+    updateQuest(this.state.user_id, newQuest, null);
+
+    return newQuest
+  }
+
+  editQuest(values, quest){
+    const newQuest = new Quest(
+      quest.quest_id,
+      values.questName,
+      Number(values.proceed),
+      Number(values.total),
+      [values.tags]
+    );
+    console.log(newQuest)
+    updateQuest(this.state.user_id, newQuest, quest);
+
+    return newQuest
+  }
+
+  async submitQuest(values){
+    console.log(values);
+
+    var newQuest;
+    if(this.state.editingQuest){
+      newQuest = this.editQuest(values, this.state.editingQuest)
+    }else{
+      newQuest = await this.addQuest(values)
+    }
+    console.log(newQuest)
+
+    const quests = { ...this.state.quests };
+    quests[newQuest.quest_id] = newQuest;
+    this.setState({
+      quests: quests,
+      showQuestModal: false,
+    });
+    this.checkQuestComplete();
+  }
+
   render() {
     const quests_html = Object.values(this.state.quests).map((quest) => (
       <QuestRow
@@ -218,29 +279,7 @@ class Base extends React.Component {
               tags: Yup.string().required("required"),
             })}
             onSubmit={(values, { setSubmitting }) => {
-              console.log(values);
-
-              const quest_ids = Object.keys(this.state.quests).map((x) => Number(x));
-              const max_quest_id = Math.max(...quest_ids);
-              const new_quest_id = this.state.editingQuest ? this.state.editingQuest.quest_id : max_quest_id + 1
-
-              const newQuest = new Quest(
-                new_quest_id,
-                values.questName,
-                Number(values.proceed),
-                Number(values.total),
-                [values.tags]
-              );
-              console.log(newQuest)
-              updateQuest(this.state.user_id, newQuest, this.state.editingQuest ? this.state.editingQuest : null);
-          
-              const quests = { ...this.state.quests };
-              quests[newQuest.quest_id] = newQuest;
-              this.setState({
-                quests: quests,
-                showQuestModal: false,
-              });
-              this.checkQuestComplete();
+              this.submitQuest(values)
             }}
           >
             <Form>
