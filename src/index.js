@@ -151,6 +151,19 @@ class Base extends React.Component {
     });
   }
 
+  checkQuestComplete() {
+    const proceedingQuests = {}
+    for(let k of Object.keys(this.state.quests)){
+      if(this.state.quests[k].proceed >= this.state.quests[k].total){
+        alert("クエスト:" + this.state.quests[k].questName + "を完了しました！")
+      }else{
+        proceedingQuests[k] = this.state.quests[k]
+      }
+    }
+
+    this.setState({ quests: proceedingQuests })
+  }
+
   proceedQuest(quest) {
     const prev_quest = new Quest(
       quest.quest_id,
@@ -163,6 +176,7 @@ class Base extends React.Component {
     quests[quest.quest_id].proceed += 1;
     updateQuest(this.state.user_id, quests[quest.quest_id], prev_quest);
     this.setState({ quests: quests });
+    this.checkQuestComplete()
   }
 
   render() {
@@ -223,6 +237,7 @@ class Base extends React.Component {
                 quests: quests,
                 showQuestModal: false,
               });
+              this.checkQuestComplete();
             }}
           >
             <Form>
