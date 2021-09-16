@@ -270,7 +270,7 @@ class Base extends React.Component {
               questName: this.state.editingQuest ? this.state.editingQuest.questName : "",
               proceed: this.state.editingQuest ? this.state.editingQuest.proceed : 0,
               total: this.state.editingQuest ? this.state.editingQuest.total : 0,
-              tags: this.state.editingQuest ? this.state.editingQuest.tags : "",
+              tags: this.state.editingQuest ? this.state.editingQuest.tags[0] : "",
             }}
             validationSchema={Yup.object({
               questName: Yup.string().required("Required"),
