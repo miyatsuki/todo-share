@@ -9,6 +9,7 @@ import { getFirestore, collection, addDoc, getDocs, setDoc, doc, serverTimestamp
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { Formik, Field, Form, ErrorMessage } from "formik";
 import * as Yup from "yup";
+const axios = require('axios').default;
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -58,7 +59,6 @@ async function updateQuest(user_id, quest, prevQuest) {
 }
 
 async function calcExp(user_id, range) {
-
   const d = new Date()
   var from_date, to_date
   if(range === "day"){
@@ -85,6 +85,10 @@ async function calcExp(user_id, range) {
 
   let expDict = {}
   for(let proceed of result){
+    if(proceed[1] == 0){
+      continue
+    }
+
     if(!(proceed[0] in expDict)){
       expDict[proceed[0]] = 0
     }
@@ -132,6 +136,7 @@ class Base extends React.Component {
 
     this.handleOpenModal = this.handleOpenModal.bind(this);
     this.handleCloseModal = this.handleCloseModal.bind(this);
+    this.sendEXP = this.sendEXP.bind(this);
   }
 
   handleOpenModal(quest) {
@@ -244,6 +249,15 @@ class Base extends React.Component {
     this.checkQuestComplete();
   }
 
+  async sendEXP(user_id, range){
+    const expDict = await calcExp(user_id, range)
+    // Make a request for a user with a given ID
+    const response  = await axios.get('https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/todo-share-image-creator-function')
+    this.setState({
+      shareImageBase64: response["data"]
+    })
+  }
+
   render() {
     const quests_html = Object.values(this.state.quests).map((quest) => (
       <QuestRow
@@ -257,7 +271,7 @@ class Base extends React.Component {
     return (
       <div>
         <div>クエスト一覧</div>
-        <button onClick={() => calcExp(this.state.user_id, "day")}>Share</button>
+        <button onClick={() => this.sendEXP(this.state.user_id, "day")}>Share</button>
         <div>user_id: {this.state.user_id}</div>
         {quests_html}
         <button onClick={() => this.handleOpenModal(null)}>クエスト追加</button>
