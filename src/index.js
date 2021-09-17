@@ -126,7 +126,8 @@ class Base extends React.Component {
       user_id: 0,
       quests: {},
       showQuestModal: false,
-      editingQuest: null
+      editingQuest: null,
+      shareImageBase64: ""
     };
 
     this.handleOpenModal = this.handleOpenModal.bind(this);
@@ -313,6 +314,9 @@ class Base extends React.Component {
             </Form>
           </Formik>
         </ReactModal>
+        <div>
+          <img src={"data:image/png;base64," + this.state.shareImageBase64} />
+        </div>
       </div>
     );
   }
