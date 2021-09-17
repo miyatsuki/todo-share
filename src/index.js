@@ -71,29 +71,38 @@ async function calcExp(user_id, range) {
   }
 
   const q = query(
-    collection(db, "users/" + user_id + "/proceed_log"), 
-    where("timestamp", ">=", from_date), 
-    where("timestamp", "<=", to_date), 
+    collection(db, "users/" + user_id + "/proceed_log")
   );
 
   const result = [];
   const querySnapshot = await getDocs(q);
-  querySnapshot.forEach((doc) => result.push([
-    doc.data().tags[0], 
-    doc.data().after_proceed - doc.data().before_proceed
-  ]));
+  querySnapshot.forEach((doc) => {
+    result.push([
+      doc.data().tags[0], 
+      doc.data().after_proceed - doc.data().before_proceed,
+      doc.data().timestamp.toDate()
+    ])
+  });
 
-  let expDict = {}
+  let expDict = {user_name: "user_name", exp: {}}
   for(let proceed of result){
-    if(proceed[1] == 0){
+    if(proceed[1] == 0 || proceed[2] < from_date || proceed[2] > to_date){
       continue
     }
 
     if(!(proceed[0] in expDict)){
-      expDict[proceed[0]] = 0
+      expDict["exp"][proceed[0]] = {total: 0, proceed: 0}
     }
 
-    expDict[proceed[0]] += proceed[1]
+    expDict["exp"][proceed[0]]["proceed"] += proceed[1]
+  }
+
+  for(let proceed of result){
+    if(!(proceed[0] in expDict["exp"])){
+      continue
+    }
+
+    expDict["exp"][proceed[0]]["total"] += proceed[1]
   }
 
   console.log(result)
