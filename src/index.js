@@ -9,6 +9,7 @@ import { getFirestore, collection, addDoc, getDocs, setDoc, doc, serverTimestamp
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { Formik, Field, Form, ErrorMessage } from "formik";
 import * as Yup from "yup";
+const axios = require('axios').default;
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -58,7 +59,6 @@ async function updateQuest(user_id, quest, prevQuest) {
 }
 
 async function calcExp(user_id, range) {
-
   const d = new Date()
   var from_date, to_date
   if(range === "day"){
@@ -71,25 +71,38 @@ async function calcExp(user_id, range) {
   }
 
   const q = query(
-    collection(db, "users/" + user_id + "/proceed_log"), 
-    where("timestamp", ">=", from_date), 
-    where("timestamp", "<=", to_date), 
+    collection(db, "users/" + user_id + "/proceed_log")
   );
 
   const result = [];
   const querySnapshot = await getDocs(q);
-  querySnapshot.forEach((doc) => result.push([
-    doc.data().tags[0], 
-    doc.data().after_proceed - doc.data().before_proceed
-  ]));
+  querySnapshot.forEach((doc) => {
+    result.push([
+      doc.data().tags[0], 
+      doc.data().after_proceed - doc.data().before_proceed,
+      doc.data().timestamp.toDate()
+    ])
+  });
 
-  let expDict = {}
+  let expDict = {user_name: "user_name", exp: {}}
   for(let proceed of result){
-    if(!(proceed[0] in expDict)){
-      expDict[proceed[0]] = 0
+    if(proceed[1] == 0 || proceed[2] < from_date || proceed[2] > to_date){
+      continue
     }
 
-    expDict[proceed[0]] += proceed[1]
+    if(!(proceed[0] in expDict)){
+      expDict["exp"][proceed[0]] = {total: 0, proceed: 0}
+    }
+
+    expDict["exp"][proceed[0]]["proceed"] += proceed[1]
+  }
+
+  for(let proceed of result){
+    if(!(proceed[0] in expDict["exp"])){
+      continue
+    }
+
+    expDict["exp"][proceed[0]]["total"] += proceed[1]
   }
 
   console.log(result)
@@ -126,11 +139,13 @@ class Base extends React.Component {
       user_id: 0,
       quests: {},
       showQuestModal: false,
-      editingQuest: null
+      editingQuest: null,
+      shareImageBase64: ""
     };
 
     this.handleOpenModal = this.handleOpenModal.bind(this);
     this.handleCloseModal = this.handleCloseModal.bind(this);
+    this.sendEXP = this.sendEXP.bind(this);
   }
 
   handleOpenModal(quest) {
@@ -243,6 +258,15 @@ class Base extends React.Component {
     this.checkQuestComplete();
   }
 
+  async sendEXP(user_id, range){
+    const expDict = await calcExp(user_id, range)
+    // Make a request for a user with a given ID
+    const response  = await axios.post('https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/image', expDict)
+    this.setState({
+      shareImageBase64: response["data"]
+    })
+  }
+
   render() {
     const quests_html = Object.values(this.state.quests).map((quest) => (
       <QuestRow
@@ -256,7 +280,7 @@ class Base extends React.Component {
     return (
       <div>
         <div>クエスト一覧</div>
-        <button onClick={() => calcExp(this.state.user_id, "day")}>Share</button>
+        <button onClick={() => this.sendEXP(this.state.user_id, "day")}>Share</button>
         <div>user_id: {this.state.user_id}</div>
         {quests_html}
         <button onClick={() => this.handleOpenModal(null)}>クエスト追加</button>
@@ -313,6 +337,9 @@ class Base extends React.Component {
             </Form>
           </Formik>
         </ReactModal>
+        <div>
+          <img src={"data:image/png;base64," + this.state.shareImageBase64} />
+        </div>
       </div>
     );
   }
