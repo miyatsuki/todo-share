@@ -261,7 +261,7 @@ class Base extends React.Component {
   async sendEXP(user_id, range){
     const expDict = await calcExp(user_id, range)
     // Make a request for a user with a given ID
-    const response  = await axios.get('https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/todo-share-image-creator-function')
+    const response  = await axios.post('https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/image', expDict)
     this.setState({
       shareImageBase64: response["data"]
     })
