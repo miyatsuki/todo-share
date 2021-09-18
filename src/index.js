@@ -124,7 +124,12 @@ async function getMaxQuestId(userId) {
 
   let result = [];
   querySnapshot.forEach((doc) => result.push([doc.id]));
-  return Math.max(...result);
+  if(result.length > 0){
+    return Math.max(...result);
+  }else{
+    return -1
+  }
+
 }
 
 class Quest {
