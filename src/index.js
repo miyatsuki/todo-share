@@ -4,7 +4,8 @@ import ReactModal from "react-modal";
 import "./index.css";
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, setDoc, doc, serverTimestamp, query, where } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, setDoc, doc, serverTimestamp, query } from "firebase/firestore";
+import { getAuth, signInWithPopup, TwitterAuthProvider } from "firebase/auth";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { Formik, Field, Form, ErrorMessage } from "formik";
@@ -26,8 +27,9 @@ const firebaseConfig = {
 // Initialize Firebase
 //const app = initializeApp(firebaseConfig);
 initializeApp(firebaseConfig);
-const db = getFirestore();
 
+// Firestore
+const db = getFirestore();
 async function loadQuests(user_id) {
   const querySnapshot = await getDocs(
     collection(db, "users/" + user_id + "/quests")
@@ -39,6 +41,10 @@ async function loadQuests(user_id) {
 
   return result;
 }
+
+// Auth
+const auth = getAuth();
+const provider = new TwitterAuthProvider();
 
 async function updateQuest(user_id, quest, prevQuest) {
   console.log(quest);
@@ -136,13 +142,14 @@ class Base extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      user_id: 0,
+      user_id: "",
       quests: {},
       showQuestModal: false,
       editingQuest: null,
       shareImageBase64: ""
     };
 
+    this.login = this.login.bind(this)
     this.handleOpenModal = this.handleOpenModal.bind(this);
     this.handleCloseModal = this.handleCloseModal.bind(this);
     this.sendEXP = this.sendEXP.bind(this);
@@ -160,7 +167,40 @@ class Base extends React.Component {
     this.setState({ showQuestModal: false });
   }
 
+  login() {
+    signInWithPopup(auth, provider)
+    .then((result) => {
+      // This gives you a the Twitter OAuth 1.0 Access Token and Secret.
+      // You can use these server side with your app's credentials to access the Twitter API.
+      const credential = TwitterAuthProvider.credentialFromResult(result);
+      const token = credential.accessToken;
+      const secret = credential.secret;
+
+      // The signed-in user info.
+      const user = result.user;
+      // ...
+
+      console.log(auth)
+      console.log(auth.currentUser)
+
+      this.setState({
+        user_id: auth.currentUser.uid
+      })
+
+    }).catch((error) => {
+      // Handle Errors here.
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      // The email of the user's account used.
+      const email = error.email;
+      // The AuthCredential type that was used.
+      const credential = TwitterAuthProvider.credentialFromError(error);
+      // ...
+    });
+  }
+
   componentDidMount() {
+    return
     loadQuests(this.state.user_id).then((response) => {
       console.log(response);
       const quests = Object.fromEntries(
@@ -276,6 +316,14 @@ class Base extends React.Component {
         onClickEditButton={(quest) => this.handleOpenModal(quest)}
       ></QuestRow>
     ));
+
+    if(this.state.user_id == ""){
+      return (
+        <div>
+          <button onClick={() => this.login()}>ログイン</button>
+        </div>
+      )
+    }
 
     return (
       <div>
