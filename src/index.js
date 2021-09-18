@@ -4,7 +4,8 @@ import ReactModal from "react-modal";
 import "./index.css";
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, setDoc, doc, serverTimestamp, query, where } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, setDoc, doc, serverTimestamp, query } from "firebase/firestore";
+import { getAuth, signInWithPopup, TwitterAuthProvider } from "firebase/auth";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { Formik, Field, Form, ErrorMessage } from "formik";
@@ -26,8 +27,9 @@ const firebaseConfig = {
 // Initialize Firebase
 //const app = initializeApp(firebaseConfig);
 initializeApp(firebaseConfig);
-const db = getFirestore();
 
+// Firestore
+const db = getFirestore();
 async function loadQuests(user_id) {
   const querySnapshot = await getDocs(
     collection(db, "users/" + user_id + "/quests")
@@ -39,6 +41,10 @@ async function loadQuests(user_id) {
 
   return result;
 }
+
+// Auth
+const auth = getAuth();
+const provider = new TwitterAuthProvider();
 
 async function updateQuest(user_id, quest, prevQuest) {
   console.log(quest);
@@ -84,25 +90,25 @@ async function calcExp(user_id, range) {
     ])
   });
 
-  let expDict = {user_name: "user_name", exp: {}}
+  let expDict = {};
   for(let proceed of result){
-    if(proceed[1] == 0 || proceed[2] < from_date || proceed[2] > to_date){
+    if(proceed[1] === 0 || proceed[2] < from_date || proceed[2] > to_date){
       continue
     }
 
     if(!(proceed[0] in expDict)){
-      expDict["exp"][proceed[0]] = {total: 0, proceed: 0}
+      expDict[proceed[0]] = {total: 0, proceed: 0}
     }
 
-    expDict["exp"][proceed[0]]["proceed"] += proceed[1]
+    expDict[proceed[0]]["proceed"] += proceed[1]
   }
 
   for(let proceed of result){
-    if(!(proceed[0] in expDict["exp"])){
+    if(!(proceed[0] in expDict)){
       continue
     }
 
-    expDict["exp"][proceed[0]]["total"] += proceed[1]
+    expDict[proceed[0]]["total"] += proceed[1]
   }
 
   console.log(result)
@@ -118,6 +124,9 @@ async function getMaxQuestId(userId) {
 
   let result = [];
   querySnapshot.forEach((doc) => result.push([doc.id]));
+
+  console.log(result)
+
   if(result.length > 0){
     return Math.max(...result);
   }else{
@@ -141,13 +150,17 @@ class Base extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      user_id: 0,
+      user_id: "",
+      user_name: "",
+      access_token: "",
+      access_token_secret: "",
       quests: {},
       showQuestModal: false,
       editingQuest: null,
       shareImageBase64: ""
     };
 
+    this.login = this.login.bind(this)
     this.handleOpenModal = this.handleOpenModal.bind(this);
     this.handleCloseModal = this.handleCloseModal.bind(this);
     this.sendEXP = this.sendEXP.bind(this);
@@ -165,7 +178,58 @@ class Base extends React.Component {
     this.setState({ showQuestModal: false });
   }
 
+  async login() {
+    try {
+      const result = await signInWithPopup(auth, provider)
+
+      // This gives you a the Twitter OAuth 1.0 Access Token and Secret.
+      // You can use these server side with your app's credentials to access the Twitter API.
+      const credential = TwitterAuthProvider.credentialFromResult(result);
+      const token = credential.accessToken;
+      const secret = credential.secret;
+
+      // The signed-in user info.
+      const user = result.user;
+      console.log(user)
+
+      this.setState({
+        user_id: user.uid,
+        user_name: user.displayName,
+        access_token: token,
+        access_token_secret: secret
+      })
+
+      loadQuests(this.state.user_id).then((response) => {
+        console.log(response);
+        const quests = Object.fromEntries(
+          response.map((quest) => [
+            Number(quest[0]),
+            new Quest(
+              Number(quest[0]),
+              quest[1]["name"],
+              Number(quest[1]["proceed"]),
+              Number(quest[1]["total"]),
+              quest[1]["tags"]
+            ),
+          ])
+        );
+        this.setState({ quests: quests });
+      });
+
+    } catch(error) {
+      // Handle Errors here.
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      console.log(errorCode)
+      console.log(errorMessage)
+    }
+  }
+
   componentDidMount() {
+    if(this.state.user_id === ""){
+      return
+    }
+
     loadQuests(this.state.user_id).then((response) => {
       console.log(response);
       const quests = Object.fromEntries(
@@ -214,6 +278,8 @@ class Base extends React.Component {
 
   async addQuest(values){
     const max_quest_id = await getMaxQuestId(this.state.user_id)
+    console.log(max_quest_id)
+
     const new_quest_id = max_quest_id + 1
 
     const newQuest = new Quest(
@@ -266,7 +332,13 @@ class Base extends React.Component {
   async sendEXP(user_id, range){
     const expDict = await calcExp(user_id, range)
     // Make a request for a user with a given ID
-    const response  = await axios.post('https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/image', expDict)
+    const response  = await axios.post('https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/image', 
+    {
+      user_name: this.state.user_name,
+      exp: expDict,
+      access_token: this.state.access_token,
+      access_token_secret: this.state.access_token_secret
+    })
     this.setState({
       shareImageBase64: response["data"]
     })
@@ -281,6 +353,14 @@ class Base extends React.Component {
         onClickEditButton={(quest) => this.handleOpenModal(quest)}
       ></QuestRow>
     ));
+
+    if(this.state.user_id === ""){
+      return (
+        <div>
+          <button onClick={() => this.login()}>ログイン</button>
+        </div>
+      )
+    }
 
     return (
       <div>
