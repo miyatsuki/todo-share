@@ -124,6 +124,9 @@ async function getMaxQuestId(userId) {
 
   let result = [];
   querySnapshot.forEach((doc) => result.push([doc.id]));
+
+  console.log(result)
+
   if(result.length > 0){
     return Math.max(...result);
   }else{
@@ -148,6 +151,7 @@ class Base extends React.Component {
     super(props);
     this.state = {
       user_id: "",
+      user_name: "",
       quests: {},
       showQuestModal: false,
       editingQuest: null,
@@ -172,9 +176,10 @@ class Base extends React.Component {
     this.setState({ showQuestModal: false });
   }
 
-  login() {
-    signInWithPopup(auth, provider)
-    .then((result) => {
+  async login() {
+    try {
+      const result = await signInWithPopup(auth, provider)
+
       // This gives you a the Twitter OAuth 1.0 Access Token and Secret.
       // You can use these server side with your app's credentials to access the Twitter API.
       const credential = TwitterAuthProvider.credentialFromResult(result);
@@ -183,16 +188,31 @@ class Base extends React.Component {
 
       // The signed-in user info.
       const user = result.user;
-      // ...
-
-      console.log(auth)
-      console.log(auth.currentUser)
+      console.log(user)
 
       this.setState({
-        user_id: auth.currentUser.uid
+        user_id: user.uid,
+        user_name: user.displayName
       })
 
-    }).catch((error) => {
+      loadQuests(this.state.user_id).then((response) => {
+        console.log(response);
+        const quests = Object.fromEntries(
+          response.map((quest) => [
+            Number(quest[0]),
+            new Quest(
+              Number(quest[0]),
+              quest[1]["name"],
+              Number(quest[1]["proceed"]),
+              Number(quest[1]["total"]),
+              quest[1]["tags"]
+            ),
+          ])
+        );
+        this.setState({ quests: quests });
+      });
+
+    } catch(error) {
       // Handle Errors here.
       const errorCode = error.code;
       const errorMessage = error.message;
@@ -201,11 +221,14 @@ class Base extends React.Component {
       // The AuthCredential type that was used.
       const credential = TwitterAuthProvider.credentialFromError(error);
       // ...
-    });
+    }
   }
 
   componentDidMount() {
-    return
+    if(this.state.user_id == ""){
+      return
+    }
+
     loadQuests(this.state.user_id).then((response) => {
       console.log(response);
       const quests = Object.fromEntries(
@@ -254,6 +277,8 @@ class Base extends React.Component {
 
   async addQuest(values){
     const max_quest_id = await getMaxQuestId(this.state.user_id)
+    console.log(max_quest_id)
+
     const new_quest_id = max_quest_id + 1
 
     const newQuest = new Quest(
