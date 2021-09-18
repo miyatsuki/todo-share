@@ -90,25 +90,25 @@ async function calcExp(user_id, range) {
     ])
   });
 
-  let expDict = {user_name: "user_name", exp: {}}
+  let expDict = {};
   for(let proceed of result){
-    if(proceed[1] == 0 || proceed[2] < from_date || proceed[2] > to_date){
+    if(proceed[1] === 0 || proceed[2] < from_date || proceed[2] > to_date){
       continue
     }
 
     if(!(proceed[0] in expDict)){
-      expDict["exp"][proceed[0]] = {total: 0, proceed: 0}
+      expDict[proceed[0]] = {total: 0, proceed: 0}
     }
 
-    expDict["exp"][proceed[0]]["proceed"] += proceed[1]
+    expDict[proceed[0]]["proceed"] += proceed[1]
   }
 
   for(let proceed of result){
-    if(!(proceed[0] in expDict["exp"])){
+    if(!(proceed[0] in expDict)){
       continue
     }
 
-    expDict["exp"][proceed[0]]["total"] += proceed[1]
+    expDict[proceed[0]]["total"] += proceed[1]
   }
 
   console.log(result)
@@ -216,16 +216,13 @@ class Base extends React.Component {
       // Handle Errors here.
       const errorCode = error.code;
       const errorMessage = error.message;
-      // The email of the user's account used.
-      const email = error.email;
-      // The AuthCredential type that was used.
-      const credential = TwitterAuthProvider.credentialFromError(error);
-      // ...
+      console.log(errorCode)
+      console.log(errorMessage)
     }
   }
 
   componentDidMount() {
-    if(this.state.user_id == ""){
+    if(this.state.user_id === ""){
       return
     }
 
@@ -331,7 +328,11 @@ class Base extends React.Component {
   async sendEXP(user_id, range){
     const expDict = await calcExp(user_id, range)
     // Make a request for a user with a given ID
-    const response  = await axios.post('https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/image', expDict)
+    const response  = await axios.post('https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/image', 
+    {
+      user_name: this.state.user_name,
+      exp: expDict
+    })
     this.setState({
       shareImageBase64: response["data"]
     })
@@ -347,7 +348,7 @@ class Base extends React.Component {
       ></QuestRow>
     ));
 
-    if(this.state.user_id == ""){
+    if(this.state.user_id === ""){
       return (
         <div>
           <button onClick={() => this.login()}>ログイン</button>
