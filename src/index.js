@@ -152,6 +152,8 @@ class Base extends React.Component {
     this.state = {
       user_id: "",
       user_name: "",
+      access_token: "",
+      access_token_secret: "",
       quests: {},
       showQuestModal: false,
       editingQuest: null,
@@ -192,7 +194,9 @@ class Base extends React.Component {
 
       this.setState({
         user_id: user.uid,
-        user_name: user.displayName
+        user_name: user.displayName,
+        access_token: token,
+        access_token_secret: secret
       })
 
       loadQuests(this.state.user_id).then((response) => {
@@ -331,7 +335,9 @@ class Base extends React.Component {
     const response  = await axios.post('https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/image', 
     {
       user_name: this.state.user_name,
-      exp: expDict
+      exp: expDict,
+      access_token: this.state.access_token,
+      access_token_secret: this.state.access_token_secret
     })
     this.setState({
       shareImageBase64: response["data"]
