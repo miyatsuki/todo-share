@@ -5,6 +5,7 @@ import "./index.css";
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { EditPage } from "./page/editPage"
 import { LoginPage } from "./page/loginPage"
+import { ViewPage } from "./page/viewPage"
 import { loadQuests, updateQuest, calcExp, login } from "./firebase"
 import { Quest } from "./quest"
 
@@ -77,7 +78,15 @@ class Base extends React.Component {
   }
 
   render() {
-    console.log(this.state)
+    if(window.location.pathname.startsWith("/view/")){
+      const pathname = window.location.pathname
+      const userId = pathname.substr(6)
+
+      return <ViewPage
+        userId={userId}
+      >
+      </ViewPage>
+    }
     if(this.state.user_id === ""){
       return <LoginPage
         login={() => this.login()}
@@ -87,7 +96,6 @@ class Base extends React.Component {
         quests={this.state.quests}
         userId={this.state.user_id}
         userName={this.state.user_name}
-        calcEXP={() => calcExp()}
         access_token={this.state.access_token}
         access_token_secret={this.state.access_token_secret}
       >
