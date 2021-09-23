@@ -5,8 +5,8 @@
   import { AUTH0_DOMAIN, AUTH0_CLIENT_ID, HASURA_URL } from "$lib/env.js";
 
   let auth0Client;
-  onMount(() => {
-    auth0Client = new Auth0Client({
+  onMount(async () => {
+    auth0Client = await new Auth0Client({
       domain: AUTH0_DOMAIN,
       client_id: AUTH0_CLIENT_ID,
     });
@@ -182,7 +182,9 @@
 </script>
 
 <div>クエスト一覧</div>
-{#if !isAuthenticated}
+{#if !auth0Client}
+  初期化中...
+{:else if !isAuthenticated}
   <button on:click={handleClick} id="login">login</button>
 {:else if !questLog}
   データ取得中。。。
