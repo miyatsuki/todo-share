@@ -1,13 +1,15 @@
 <script>
-  import auth0 from "@auth0/auth0-spa-js";
+  import { onMount } from "svelte";
+  import Auth0Client from "@auth0/auth0-spa-js";
   import { GraphQLClient, gql } from "graphql-request";
   import { AUTH0_DOMAIN, AUTH0_CLIENT_ID, HASURA_URL } from "$lib/env.js";
 
-  const { Auth0Client } = auth0;
-
-  const auth0Client = new Auth0Client({
-    domain: AUTH0_DOMAIN,
-    client_id: AUTH0_CLIENT_ID,
+  let auth0Client;
+  onMount(async () => {
+    auth0Client = await new Auth0Client({
+      domain: AUTH0_DOMAIN,
+      client_id: AUTH0_CLIENT_ID,
+    });
   });
 
   var isAuthenticated = false;
@@ -180,7 +182,9 @@
 </script>
 
 <div>クエスト一覧</div>
-{#if !isAuthenticated}
+{#if !auth0Client}
+  初期化中...
+{:else if !isAuthenticated}
   <button on:click={handleClick} id="login">login</button>
 {:else if !questLog}
   データ取得中。。。
