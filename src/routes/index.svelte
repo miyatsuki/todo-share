@@ -1,9 +1,11 @@
 <script>
-  import { Auth0Client } from "@auth0/auth0-spa-js";
+  import auth0 from "@auth0/auth0-spa-js";
   import { GraphQLClient, gql } from "graphql-request";
   import { AUTH0_DOMAIN, AUTH0_CLIENT_ID, HASURA_URL } from "$lib/env.js";
 
-  const auth0 = new Auth0Client({
+  const { Auth0Client } = auth0;
+
+  const auth0Client = new Auth0Client({
     domain: AUTH0_DOMAIN,
     client_id: AUTH0_CLIENT_ID,
   });
@@ -12,13 +14,13 @@
   var idToken;
   var userId;
   async function handleClick() {
-    const token = await auth0.loginWithPopup({});
-    isAuthenticated = await auth0.isAuthenticated();
+    const token = await auth0Client.loginWithPopup({});
+    isAuthenticated = await auth0Client.isAuthenticated();
 
     //logged in. you can get the user profile like this:
-    const user = await auth0.getUser();
+    const user = await auth0Client.getUser();
     userId = user["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
-    let claim = await auth0.getIdTokenClaims();
+    let claim = await auth0Client.getIdTokenClaims();
     idToken = claim.__raw;
 
     await fetchUserQuest(userId, idToken);
