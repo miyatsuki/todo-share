@@ -37,15 +37,18 @@ async function getQuestLog(userId) {
   return data["quests"];
 }
 
+
 export async function get({ params }) {
   const { userName } = params;
   const userId = await getUserName(userName);
   const questLog = await getQuestLog(userId);
+  const imageURL = `https://study-share.s3.ap-northeast-1.amazonaws.com/${userName}/all.png`
 
   return {
     body: {
       userName: userName,
       questLog: questLog,
+      imageURL: imageURL
     },
   };
 }
