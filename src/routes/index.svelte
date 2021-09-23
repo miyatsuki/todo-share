@@ -79,6 +79,24 @@
     });
   }
 
+  var userName;
+  async function getUserName(userId) {
+    const graphQLClient = new GraphQLClient(HASURA_URL);
+
+    const query = gql`
+      query ($userId: String) {
+        users(where: { user_id: { _eq: $userId } }) {
+          user_name
+        }
+      }
+    `;
+    const variables = { userId: userId };
+    const data = await graphQLClient.request(query, variables);
+    userName = data["users"][0]["user_name"];
+
+    return userName;
+  }
+
   async function updateQuest(updatedQuest) {
     const updatedQuestLog = [];
     for (var quest of questLog) {
@@ -112,6 +130,7 @@
     }
 
     questLog = [...updatedQuestLog];
+    createImage(questLog);
   }
 
   async function addQuest(addingQuest) {
@@ -138,6 +157,37 @@
     });
     graphQLClient.request(query);
     questLog = [...questLog, addingQuest];
+    createImage(questLog);
+  }
+
+  async function createImage(questLog) {
+    if (!userName) {
+      await getUserName(userId);
+    }
+
+    let quests = {};
+    for (var quest of questLog) {
+      quests[quest.questName] = quest.proceed / quest.total;
+    }
+
+    console.log({
+      user_name: userName,
+      quests: quests,
+    });
+
+    const response = await fetch(
+      "https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/image",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_name: userName,
+          quests: quests,
+        }),
+      }
+    );
   }
 
   let editingQuest;
