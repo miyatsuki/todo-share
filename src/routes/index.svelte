@@ -170,11 +170,6 @@
       quests[quest.questName] = quest.proceed / quest.total;
     }
 
-    console.log({
-      user_name: userName,
-      quests: quests,
-    });
-
     const response = await fetch(
       "https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/image",
       {
