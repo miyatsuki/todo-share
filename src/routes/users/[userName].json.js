@@ -37,15 +37,57 @@ async function getQuestLog(userId) {
   return data["quests"];
 }
 
+async function createImage(userName, questLog) {
+
+  let rawQuestLog = {};
+  for (var quest of questLog) {
+    if (
+      quest.quest_id in rawQuestLog &&
+      rawQuestLog[quest.quest_id].insert_time <= quest.insert_time
+    ) {
+      rawQuestLog[quest.quest_id] = quest;
+    } else {
+      rawQuestLog[quest.quest_id] = quest;
+    }
+  }
+
+  let quests = {}
+  for (var questId of Object.keys(rawQuestLog)){
+    quests[rawQuestLog[questId].quest_name] = rawQuestLog[questId].after_proceed / rawQuestLog[questId].total
+  }
+
+  var imageURL
+  const response  = await fetch(
+    'https://j5wvkfcw7k.execute-api.ap-northeast-1.amazonaws.com/image', 
+    {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(
+        {        
+          user_name: userName,
+          quests: quests
+        }
+      )
+    }
+  )
+
+  imageURL = response["url"]
+  return imageURL
+}
+
 export async function get({ params }) {
   const { userName } = params;
   const userId = await getUserName(userName);
   const questLog = await getQuestLog(userId);
+  const imageURL = await createImage(userName, questLog)
 
   return {
     body: {
       userName: userName,
       questLog: questLog,
+      imageURL: imageURL
     },
   };
 }
