@@ -75,6 +75,7 @@
         questName: rawQuestLog[k].quest_name,
         proceed: rawQuestLog[k].after_proceed,
         total: rawQuestLog[k].total,
+        updateTime: new Date(rawQuestLog[k].insert_time),
       };
     });
   }
@@ -103,6 +104,7 @@
       if (updatedQuest.questId !== quest.questId) {
         updatedQuestLog.push(quest);
       } else {
+        updatedQuest["updateTime"] = new Date();
         updatedQuestLog.push({ ...updatedQuest });
         // run update query
         const query = gql`
@@ -134,6 +136,8 @@
   }
 
   async function addQuest(addingQuest) {
+    addingQuest["updateTime"] = new Date();
+
     // run update query
     const query = gql`
 			mutation MyMutation {
@@ -161,6 +165,23 @@
   }
 
   async function createImage(questLog) {
+    const today = new Date();
+    const yyyy = today.getFullYear().toString();
+    const mm = (today.getMonth() + 1).toString().padStart(2, "0");
+    const dd = today.getDate().toString().padStart(2, "0");
+    const yyyymmdd = yyyy + mm + dd;
+
+    let highlight = [];
+    for (var quest of questLog) {
+      if (
+        quest.updateTime.getFullYear() == today.getFullYear() &&
+        quest.updateTime.getMonth() == today.getMonth() &&
+        quest.updateTime.getDate() == today.getDate()
+      ) {
+        highlight.push(quest.questName);
+      }
+    }
+
     if (!userName) {
       await getUserName(userId);
     }
@@ -180,6 +201,8 @@
         body: JSON.stringify({
           user_name: userName,
           quests: quests,
+          yyyymmdd: yyyymmdd,
+          highlight: highlight,
         }),
       }
     );
