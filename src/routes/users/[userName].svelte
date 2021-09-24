@@ -36,11 +36,11 @@
 
 {#each questLog as quest (quest.id)}
   <div>
-    <span>#{quest.quest_id}</span>
-    <span>{quest.quest_name}</span>
+    <span>#{quest.questId}</span>
+    <span>{quest.questName}</span>
     <span
-      >{quest.before_proceed}/{quest.total} -> {quest.after_proceed}/{quest.total}</span
+      >{quest.beforeProceed}/{quest.total} -> {quest.afterProceed}/{quest.total}</span
     >
-    <span>{quest.insert_time}</span>
+    <span>{quest.insertTime}</span>
   </div>
 {/each}

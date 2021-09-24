@@ -3,6 +3,7 @@
   import Auth0Client from "@auth0/auth0-spa-js";
   import { GraphQLClient, gql } from "graphql-request";
   import { AUTH0_DOMAIN, AUTH0_CLIENT_ID, HASURA_URL } from "$lib/env.js";
+  import { fetchCurrentQuests } from "$lib/quest";
 
   let auth0Client;
   onMount(async () => {
@@ -22,62 +23,25 @@
     //logged in. you can get the user profile like this:
     const user = await auth0Client.getUser();
     userId = user["https://hasura.io/jwt/claims"]["x-hasura-user-id"];
+
+    fetchUserQuest(userId);
+
     let claim = await auth0Client.getIdTokenClaims();
     idToken = claim.__raw;
-
-    await fetchUserQuest(userId, idToken);
   }
 
-  var questLog;
+  var currentQuests;
   var maxQuestId = 0;
-  async function fetchUserQuest(userId, idToken) {
-    const graphQLClient = new GraphQLClient(HASURA_URL, {
-      headers: {
-        authorization: "Bearer " + idToken,
-      },
-    });
+  async function fetchUserQuest(userId) {
+    currentQuests = await fetchCurrentQuests(userId);
 
-    const query = gql`
-      query ($userId: String) {
-        quests(where: { user_id: { _eq: $userId } }) {
-          id
-          quest_name
-          quest_id
-          insert_time
-          before_proceed
-          after_proceed
-          total
-        }
-      }
-    `;
-    const variables = { userId: userId };
-    const data = await graphQLClient.request(query, variables);
-
-    let rawQuestLog = {};
-    for (var quest of data["quests"]) {
-      if (
-        quest.quest_id in rawQuestLog &&
-        rawQuestLog[quest.quest_id].insert_time <= quest.insert_time
-      ) {
-        rawQuestLog[quest.quest_id] = quest;
-      } else {
-        rawQuestLog[quest.quest_id] = quest;
-      }
-
-      if (maxQuestId < quest.quest_id) {
-        maxQuestId = quest.quest_id;
+    for (var questName of Object.keys(currentQuests)) {
+      if (currentQuests[questName].questId > maxQuestId) {
+        maxQuestId += currentQuests[questName].questId;
       }
     }
 
-    questLog = Object.keys(rawQuestLog).map((k) => {
-      return {
-        questId: rawQuestLog[k].quest_id,
-        questName: rawQuestLog[k].quest_name,
-        proceed: rawQuestLog[k].after_proceed,
-        total: rawQuestLog[k].total,
-        updateTime: new Date(rawQuestLog[k].insert_time),
-      };
-    });
+    return currentQuests;
   }
 
   var userName;
@@ -99,13 +63,13 @@
   }
 
   async function updateQuest(updatedQuest) {
-    const updatedQuestLog = [];
-    for (var quest of questLog) {
+    const updatedQuests = [];
+    for (var quest of currentQuests) {
       if (updatedQuest.questId !== quest.questId) {
-        updatedQuestLog.push(quest);
+        updatedQuests.push(quest);
       } else {
         updatedQuest["updateTime"] = new Date();
-        updatedQuestLog.push({ ...updatedQuest });
+        updatedQuests.push({ ...updatedQuest });
         // run update query
         const query = gql`
 					mutation MyMutation {
@@ -131,8 +95,8 @@
       }
     }
 
-    questLog = [...updatedQuestLog];
-    createImage(questLog);
+    currentQuests = [...updatedQuests];
+    createImage(currentQuests);
   }
 
   async function addQuest(addingQuest) {
@@ -160,11 +124,11 @@
       },
     });
     graphQLClient.request(query);
-    questLog = [...questLog, addingQuest];
-    createImage(questLog);
+    currentQuests = [...currentQuests, addingQuest];
+    createImage(currentQuests);
   }
 
-  async function createImage(questLog) {
+  async function createImage(currentQuests) {
     const today = new Date();
     const yyyy = today.getFullYear().toString();
     const mm = (today.getMonth() + 1).toString().padStart(2, "0");
@@ -172,7 +136,7 @@
     const yyyymmdd = yyyy + mm + dd;
 
     let highlight = [];
-    for (var quest of questLog) {
+    for (var quest of currentQuests) {
       if (
         quest.updateTime.getFullYear() == today.getFullYear() &&
         quest.updateTime.getMonth() == today.getMonth() &&
@@ -187,7 +151,7 @@
     }
 
     let quests = {};
-    for (var quest of questLog) {
+    for (var quest of currentQuests) {
       quests[quest.questName] = quest.proceed / quest.total;
     }
 
@@ -254,10 +218,10 @@
   初期化中...
 {:else if !isAuthenticated}
   <button on:click={handleClick} id="login">login</button>
-{:else if !questLog}
+{:else if !currentQuests || !idToken}
   データ取得中。。。
 {:else}
-  {#each questLog as quest (quest.questId)}
+  {#each currentQuests as quest (quest.questId)}
     {#if !editingQuest || editingQuest.questId !== quest.questId}
       <div>
         <span>#{quest.questId}</span>
